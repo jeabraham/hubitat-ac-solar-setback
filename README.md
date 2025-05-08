@@ -22,10 +22,26 @@ This Hubitat application monitors your solar power export (or net grid usage) an
 
 ## Installation
 
-1. In the Hubitat Web UI, go to **Developer Tools → Apps Code**.
-2. Click **`+ New App`**, paste the full Groovy source code, then **Save** and **Publish → For me**.
-3. Navigate to **Apps → Add User App → Solar-Driven AC Setback**.
-4. Configure the settings as described below and click **Save**.
+You have two options to install the app into Hubitat:
+
+1. **Import from GitHub URL**
+
+   * In the Hubitat Web UI, go to **Developer Tools → Apps Code**.
+   * Click **Import** (or **Edit** if updating).
+   * Paste the raw Groovy URL:
+
+     ```
+     https://raw.githubusercontent.com/jeabraham/hubitat-ac-solar-setback/main/solar-ac-setback.groovy
+     ```
+   * Click **Import**, then **Save** and **Publish → For me**.
+
+2. **Manually copy/paste**
+
+   * In **Developer Tools → Apps Code**, click **`+ New App`**.
+   * Paste the full Groovy source code from your repository file (`solar-ac-setback.groovy`).
+   * **Save** and **Publish → For me**.
+
+After installing by either method, proceed to **Apps → Add User App → Solar-Driven AC Setback**, configure, and click **Save**.
 
 ## Configuration
 

@@ -13,6 +13,10 @@
  *  and now optional AC power metering.
  *
  *  All props to ChatGPT.  This code has not yet been tested in production.
+ *
+ *  Repo: https://github.com/jeabraham/hubitat-ac-solar-setback
+ *
+ *  Code at: https://raw.githubusercontent.com/jeabraham/hubitat-ac-solar-setback/refs/heads/main/solar-ac-setback.groovy
  */
 
 definition(
@@ -21,8 +25,9 @@ definition(
     author: "John Abraham",
     description: "Adjust setpoint by Δ° when solar > E / < E2, from sunset−T until sunset, with manual-override stop, sunset-restore, C/F, invert-power, optional AUTO & AC-meter support.",
     category: "Green Energy",
-    iconUrl:   "",
-    iconX2Url: ""
+    iconUrl:    "https://raw.githubusercontent.com/jeabraham/hubitat-ac-solar-setback/main/solar_setback_40x40.png",
+    iconX2Url:  "https://raw.githubusercontent.com/jeabraham/hubitat-ac-solar-setback/main/solar_setback_80x80.png"
+
 )
 
 preferences {
