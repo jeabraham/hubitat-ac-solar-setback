@@ -180,7 +180,14 @@ def thresholdCheck() {
 }
 
 private handlePower(rawPower) {
-    log.trace "handlePower(): rawPower=${rawPower} W"
+     // short-cycle protection: ignore power changes within the delay window
+     def nowMs    = now()
+     def delayMs  = shortCycleMinutes.toInteger() * 60 * 1000L
+     if (state.lastActionTime && (nowMs - state.lastActionTime) < delayMs) {
+         log.trace "Short-cycle protection: within ${shortCycleMinutes} min window, ignoring power event."
+         return
+     }
+
     def power = invertPower ? -rawPower : rawPower
     if (invertPower) log.debug "  → inverted to ${power} W"
 
@@ -193,7 +200,6 @@ private handlePower(rawPower) {
     def highW = thresholdHigh.toString().toDouble()*1000
     def lowW  = thresholdLow.toString().toDouble()*1000
     log.trace "  → thresholds high=${highW} W, low=${lowW} W"
-    def nowMs = now()
 
     def mode = thermostat.currentThermostatMode
 
