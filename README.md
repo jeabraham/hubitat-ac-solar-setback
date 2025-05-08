@@ -4,7 +4,7 @@
 
 ## Overview
 
-This Hubitat application monitors your solar power export (or net grid usage) and dynamically adjusts your thermostat's
+This Hubitat application monitors your solar power production, or net grid export, and dynamically adjusts your thermostat's
 cooling setpoint to prioritize cooling your house with solar power. It:
 
 * Starts monitoring from **T hours before sunset** until actual sunset.
@@ -59,7 +59,7 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
 
 * **T hours before sunset** (`offsetHours`): When to begin monitoring (e.g., `5.0`).
 * **High threshold** (`thresholdHigh`): kW production/export above which the setpoint is lowered (e.g., `3.5`).
-* **Low threshold** (`thresholdLow`): kW production/export below which the setpoint restores (must be ≥0.5 kW below the High threshold; e.g., `0.1`).
+* **Low threshold** (`thresholdLow`): kW production/export below which the setpoint restores (e.g., `0.1`). Must be ≥0.5 kW below the High threshold. If you are measuring net export and don't have an AC power meter make sure the difference is greater than your AC power consumption, otherwise this app could cycle your AC and damage it. See Troubleshooting tips below.
 * **Δ setpoint** (`tempChange`): Degrees to lower the setpoint (°C or °F).
 
 ### Options
@@ -91,7 +91,7 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
 1. At sunset−5 h, export = 0.8 kW → below High (even if air conditioner is on 0.8 kW + 2.5 kW < 3.5kW), keep checking.
 2. Cloud passes, export jumps to 1.2 kW; if AC is on `measuredExport = 1.2 + 2.5 = 3.7 kW` → >3.5 kW → lower setpoint by 2°.
 3. Cloud returns, export drops to 0.05 kW; `measuredExport = 0.05 + 2.5 = 2.55 kW` → still >Low threshold (0.1 kW) → no restore until below 0.1 kW.
-4. The air conditioner succesfully cools the house the extra 2°, so turns off.
+4. The air conditioner successfully cools the house the extra 2°, so turns off, AC_load goes to zero. Export increases by 2.5 kW but export + AC_load does not change.
 5. As the sun lowers, the export again falls to 0.05 kW; `measuredExport = 0.05 + 0 = 0.05 kW` → <0.1 kW → restore original setpoint.
 5. Sunset arrives: if still lowered, setpoint resets automatically, monitoring stops.
 
@@ -100,8 +100,11 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
 * **Validation Errors**: If the Low threshold is too close to High (<0.5 kW), the app will refuse to install/update.
 * **Logging**: Use Hubitat’s **Logs** with INFO/DEBUG levels to trace scheduling and setpoint actions.
 * **Capability Check**: Ensure your thermostat driver supports `coolingSetpoint` and `thermostatMode`. The AC-meter feature also requires a powerMeter capability.
-* **Cycling**: If you're measuring net export and you don't have a measurement of your air conditioner's power, ensure the difference between `Low Threshold` and `High Threshold` is greater than your air conditioner's power consumption, otherwise the app could start cycling.
+* **Cycling**: If you're measuring net export and you don't have a measurement of your air conditioner's power, ensure the difference between `Low Threshold` and `High Threshold` is greater than your air conditioner's power consumption, otherwise the app could start cycling. (If the air conditioner turns on due to the lowered setpoint, power export will reduce by however much power your air conditioner uses, and you don't want the setpoint to be immediately restored.)
 
-## License & Credits
+## License, Limit of Liability & Credits
 
-Developed by **John Abraham**, leveraging assistance from **ChatGPT**. Feel free to modify and share under the terms of the **MIT License**.
+Developed by **John Abraham**, leveraging assistance
+from **ChatGPT**. Feel free to modify and share under the terms of the **MIT License**.
+Note the MIT license limits liability, this app could damage your air conditioner
+by cycling it too often.  Be extra cautious if your thermostat does not have a compressor protection delay feature, a.k.a. short‐cycle protection.

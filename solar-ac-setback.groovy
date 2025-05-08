@@ -62,6 +62,13 @@ Leave the AC meter blank if you’re monitoring raw solar production.
             title: "Low threshold E2 (kW)",  defaultValue: 0.0, required: true
         input "tempChange",   "decimal",
             title: "Δ setpoint (°)",          defaultValue: 2.0, required: true
+
+        paragraph "**⚠️ If you’re monitoring net export _without_ an AC power meter, make sure:**\n" +
+              "`thresholdHigh - thresholdLow > your AC unit’s power consumption (kW)`\n" +
+              "Otherwise the app will cycle your AC too frequently and damage it.\n" +
+              "If your thermostat does not have a compressor protection delay feature, a day with mixed clouds\n" +
+              "could also damage your air conditioner."
+
     }
     section("Options") {
         input "useCelsius",  "bool",
