@@ -4,14 +4,15 @@
 
 ## Overview
 
-This Hubitat application monitors your solar power export (or net grid usage) and dynamically adjusts your thermostat's cooling setpoint to maximize the use of excess solar generation. It:
+This Hubitat application monitors your solar power export (or net grid usage) and dynamically adjusts your thermostat's
+cooling setpoint to prioritize cooling your house with solar power. It:
 
 * Starts monitoring from **T hours before sunset** until actual sunset.
-* **Lowers** the cooling setpoint by Δ° when measured export (plus optional Air Conditioning (AC) power consumption) exceeds the **High threshold**.
-* **Restores** the original setpoint when export drops below the **Low threshold** or at sunset (unless manually overridden).
+* **Lowers** the cooling setpoint by Δ° when measured production, or export plus optional Air Conditioning (AC) power consumption, exceeds the **High threshold**.
+* **Restores** the original setpoint when production, or export + AC power, drops below the **Low threshold** or at sunset (unless manually overridden).
 * **Stops monitoring** if you manually change the setpoint.
 * Supports **Celsius** (½° rounding) or **Fahrenheit** (1° rounding).
-* Offers **optional** features: inverting power sign, applying in **AUTO** mode, an **Air Conditioning (AC) Power Meter**, and adjusting for air conditioner load.
+* Offers **optional** features: inverting power sign, applying in **AUTO** mode, and adjusting for air conditioner load.
 
 ## Prerequisites
 
@@ -52,7 +53,7 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
 
 ### Optional Device
 
-* **Air Conditioning (AC) Power Meter**: If provided, its power usage is **added** to the measured export value, giving you the net export you would have if your Air Conditioning (AC) unit were off. Use this only if your primary meter measures net usage.
+* **Air Conditioning (AC) Power Meter**: If provided, its power usage is **added** to the measured export power, giving you the net export you would have if your Air Conditioning (AC) unit were off. Use this only if you're measuring net usage (not solar production).
 
 ### Thresholds & Timing
 
@@ -63,8 +64,8 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
 
 ### Options
 
-* **Use Celsius** (`useCelsius`): Rounds Δ to 0.5°C steps (uncheck for °F with 1° steps).
-* **Invert power** (`invertPower`): If your meter reports negative values on export, enable this to invert the reading.
+* **Use Celsius** (`useCelsius`): Rounds setpoint to 0.5°C steps (uncheck for °F with 1° steps).
+* **Invert power** (`invertPower`): Most net-power meters report negative values on export, enable this to invert the reading so export is positive.
 * **Apply in AUTO** (`applyToAuto`): If checked, the setback also applies when the thermostat is in AUTO mode. Otherwise, only in COOL mode.
 * **Re-check Interval** (`checkInterval`): How often (in minutes) to re-evaluate export if threshold not reached (default `15`).
 
@@ -80,17 +81,17 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
    * If already lowered and `measuredExport < Low threshold`, it restores the original setpoint.
 3. **Manual Override**: Any physical user change to the setpoint stops further monitoring until the next day.
 4. **Sunset Reset**: At sunset, if still lowered (and not manually overridden), the original setpoint is restored.
-5. **Sunrise Reset**: Each sunrise clears all state so the cycle can run again the next evening.
+5. **Sunrise Reset**: Each sunrise clears all state so the cycle can run again the next afternoon.
 
 ## Example Scenario
 
 * **Offset** = 5 h before sunset, **High** = 3.5 kW, **Low** = 0.1 kW, **Δ** = 2°.
 * **Air Conditioning (AC) load** = 2.5 kW.
 
-1. At sunset−5 h, export = 0.8 kW → below High, keep checking.
-2. Cloud passes, export jumps to 1.2 kW; with AC load added, `measuredExport = 1.2 + 2.5 = 3.7 kW` → >3.5 kW → lower setpoint by 2°.
-3. Cloud returns, export drops to 0.05 kW; `measuredExport = 0.05 + 2.5 = 2.55 kW` → still >Low threshold (0.1 kW) but \<High → no restore until below 0.1 kW.
-4. The air conditioner succesfully cools the house the extra 2°, so turns off
+1. At sunset−5 h, export = 0.8 kW → below High (even if air conditioner is on 0.8 kW + 2.5 kW < 3.5kW), keep checking.
+2. Cloud passes, export jumps to 1.2 kW; if AC is on `measuredExport = 1.2 + 2.5 = 3.7 kW` → >3.5 kW → lower setpoint by 2°.
+3. Cloud returns, export drops to 0.05 kW; `measuredExport = 0.05 + 2.5 = 2.55 kW` → still >Low threshold (0.1 kW) → no restore until below 0.1 kW.
+4. The air conditioner succesfully cools the house the extra 2°, so turns off.
 5. As the sun lowers, the export again falls to 0.05 kW; `measuredExport = 0.05 + 0 = 0.05 kW` → <0.1 kW → restore original setpoint.
 5. Sunset arrives: if still lowered, setpoint resets automatically, monitoring stops.
 
@@ -99,6 +100,7 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
 * **Validation Errors**: If the Low threshold is too close to High (<0.5 kW), the app will refuse to install/update.
 * **Logging**: Use Hubitat’s **Logs** with INFO/DEBUG levels to trace scheduling and setpoint actions.
 * **Capability Check**: Ensure your thermostat driver supports `coolingSetpoint` and `thermostatMode`. The AC-meter feature also requires a powerMeter capability.
+* **Cycling**: If you're measuring net export and you don't have a measurement of your air conditioner's power, ensure the difference between `Low Threshold` and `High Threshold` is greater than your air conditioner's power consumption, otherwise the app could start cycling.
 
 ## License & Credits
 
