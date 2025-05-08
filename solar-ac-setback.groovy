@@ -55,9 +55,9 @@ Leave the AC meter blank if you’re monitoring raw solar production.
         input "offsetHours",   "decimal",
             title: "T hours before sunset",    defaultValue: 4.0, required: true
         input "thresholdHigh","decimal",
-            title: "High threshold E (kW)",   defaultValue: 1.0, required: true
+            title: "High threshold E (kW)",   defaultValue: 3.5, required: true
         input "thresholdLow", "decimal",
-            title: "Low threshold E2 (kW)",  defaultValue: 0.0, required: true
+            title: "Low threshold E2 (kW)",  defaultValue: -0.5, required: true
         input "tempChange",   "decimal",
             title: "Δ setpoint (°)",          defaultValue: 2.0, required: true
         paragraph "**⚠️ If monitoring net export without an AC meter, ensure:**\n`thresholdHigh - thresholdLow > your AC unit's consumption (kW)` to avoid rapid cycling."
