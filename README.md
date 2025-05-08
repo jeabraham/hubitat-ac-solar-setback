@@ -44,6 +44,8 @@ You have two options to install the app into Hubitat:
 
 After installing by either method, proceed to **Apps → Add User App → Solar-Driven AC Setback**, configure, and click **Save**.
 
+Please watch your logs, especially in the first days of excess solar, to ensure the app is behaving appropriately and that your settings are effective. 
+
 ## Configuration
 
 ### Required Devices
@@ -59,16 +61,8 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
 
 * **T hours before sunset** (`offsetHours`): When to begin monitoring (e.g., `5.0`).
 * **High threshold** (`thresholdHigh`): kW production/export above which the setpoint is lowered (e.g., `3.5`).
-* **Low threshold** (`thresholdLow`): kW production/export below which the setpoint restores (e.g., `0.1`). Must be ≥0.5 kW below the High threshold. If you are measuring net export and don't have an AC power meter make sure the difference is greater than your AC power consumption, otherwise this app could cycle your AC and damage it. See Troubleshooting tips below.
+* **Low threshold** (`thresholdLow`): kW production/export below which the setpoint restores (e.g., `0.1`). Must be ≥0.5 kW below the High threshold. ⚠️ Caution: If you are measuring net export and don't have an AC power meter make sure the difference is greater than your AC power consumption, otherwise this app could cycle your AC and damage it. See Troubleshooting tips below.
 * **Δ setpoint** (`tempChange`): Degrees to lower the setpoint (°C or °F).
-
-> **⚠️ Caution:** If you’re measuring **net power export** (not direct solar export) and have *not* provided an Air Conditioning (AC) power meter, ensure:
->
-> ```
-> thresholdHigh - thresholdLow > your AC unit’s power consumption (kW)
-> ```
->
-> Otherwise the app could cycle your AC on/off too frequently and risk damage.
 
 ## Options
 
@@ -110,11 +104,11 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
 * **Validation Errors**: If the Low threshold is too close to High (<0.5 kW), the app will refuse to install/update.
 * **Logging**: Use Hubitat’s **Logs** with INFO/DEBUG levels to trace scheduling and setpoint actions.
 * **Capability Check**: Ensure your thermostat driver supports `coolingSetpoint` and `thermostatMode`. The AC-meter feature also requires a powerMeter capability.
-* **Cycling**: If you're measuring net export and you don't have a measurement of your air conditioner's power, ensure the difference between `Low Threshold` and `High Threshold` is greater than your air conditioner's power consumption, otherwise the app could start cycling. (If the air conditioner turns on due to the lowered setpoint, power export will reduce by however much power your air conditioner uses, and you don't want the setpoint to be immediately restored.)
+* **Cycling**: If you're measuring net export and you don't have a measurement of your air conditioner's power, ensure the difference between `Low Threshold` and `High Threshold` is greater than your air conditioner's power consumption, otherwise the app could start cycling, which could damage it. (If the air conditioner turns on due to the lowered setpoint, power export will reduce by however much power your air conditioner uses, and you don't want the setpoint to be immediately restored.)
 
 ## License, Limit of Liability & Credits
 
 Developed by **John Abraham**, leveraging assistance from **ChatGPT**. Feel free to modify and share under the terms of the **MIT License**.
 Note the MIT license limits liability, even with the short cycling feature, this app could damage your air conditioner
 by cycling it too often, ensure your thresholds are far enough apart to account for your
-air conditioners power (if you aren't monitoring it) and for clouds coming and going.  
+air conditioner's power (if you aren't monitoring it) and for clouds coming and going.  
