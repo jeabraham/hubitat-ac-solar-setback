@@ -17,7 +17,7 @@ cooling setpoint to prioritize cooling your house with solar power. It:
 ## Prerequisites
 
 * Hubitat Elevation Hub (2.2+ firmware recommended)
-* A Power Meter device in Hubitat reporting in watts (solar production, export, or net usage)
+* A Power Meter device in Hubitat reporting in watts (solar production, export, or net usage).  For example if you have an [Emporia Vue](https://www.emporiaenergy.com/energy-monitors/), you can use [ke7lvb's driver](https://github.com/ke7lvb/Emporia-Vue-Hubitat). 
 * A Thermostat device supporting `capability.thermostat` and `coolingSetpoint`
 * *(Optional)* A second Power Meter for your air conditioner load
 
