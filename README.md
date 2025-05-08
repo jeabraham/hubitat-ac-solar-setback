@@ -16,7 +16,7 @@ This Hubitat application monitors your solar power export (or net grid usage) an
 ## Prerequisites
 
 * Hubitat Elevation Hub (2.2+ firmware recommended)
-* A Power Meter device in Hubitat reporting in watts (solar export or net usage)
+* A Power Meter device in Hubitat reporting in watts (solar production, export, or net usage)
 * A Thermostat device supporting `capability.thermostat` and `coolingSetpoint`
 * *(Optional)* A second Power Meter for your air conditioner load
 
@@ -57,8 +57,8 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
 ### Thresholds & Timing
 
 * **T hours before sunset** (`offsetHours`): When to begin monitoring (e.g., `5.0`).
-* **High threshold** (`thresholdHigh`): kW export above which the setpoint is lowered (e.g., `3.5`).
-* **Low threshold** (`thresholdLow`): kW export below which the setpoint restores (must be ≥0.5 kW below the High threshold; e.g., `0.1`).
+* **High threshold** (`thresholdHigh`): kW production/export above which the setpoint is lowered (e.g., `3.5`).
+* **Low threshold** (`thresholdLow`): kW production/export below which the setpoint restores (must be ≥0.5 kW below the High threshold; e.g., `0.1`).
 * **Δ setpoint** (`tempChange`): Degrees to lower the setpoint (°C or °F).
 
 ### Options
@@ -90,8 +90,9 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
 1. At sunset−5 h, export = 0.8 kW → below High, keep checking.
 2. Cloud passes, export jumps to 1.2 kW; with AC load added, `measuredExport = 1.2 + 2.5 = 3.7 kW` → >3.5 kW → lower setpoint by 2°.
 3. Cloud returns, export drops to 0.05 kW; `measuredExport = 0.05 + 2.5 = 2.55 kW` → still >Low threshold (0.1 kW) but \<High → no restore until below 0.1 kW.
-4. Later, export falls again to 0.05 kW but AC is off; `measuredExport = 0.05 + 0 = 0.05 kW` → <0.1 kW → restore original setpoint.
-5. Sunset arrives: if still lowered, setpoint resets automatically.
+4. The air conditioner succesfully cools the house the extra 2°, so turns off
+5. As the sun lowers, the export again falls to 0.05 kW; `measuredExport = 0.05 + 0 = 0.05 kW` → <0.1 kW → restore original setpoint.
+5. Sunset arrives: if still lowered, setpoint resets automatically, monitoring stops.
 
 ## Troubleshooting
 
