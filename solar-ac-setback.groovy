@@ -1,5 +1,5 @@
 /**
- *  Solar-Driven AC Setback (with manual-override, sunset restore, power-invert & AC-meter)
+ *  Solar-Driven AC Setback (with manual-override, sunset restore, power-invert, AC-meter & short-cycle protection)
  *
  *  Author:  John Abraham
  *  Date:    2025-04-28
@@ -10,24 +10,22 @@
  *  Stops monitoring if you manually change the setpoint.
  *  Restores at sunset if still lowered (unless manually overridden).
  *  Supports Celsius/°F, optional power inversion, optional AUTO mode,
- *  and now optional AC power metering.
+ *  AC power metering, and short-cycle protection delay.
  *
  *  All props to ChatGPT.  This code has not yet been tested in production.
  *
  *  Repo: https://github.com/jeabraham/hubitat-ac-solar-setback
- *
- *  Code at: https://raw.githubusercontent.com/jeabraham/hubitat-ac-solar-setback/refs/heads/main/solar-ac-setback.groovy
+ *  Code: https://raw.githubusercontent.com/jeabraham/hubitat-ac-solar-setback/main/solar-ac-setback.groovy
  */
 
 definition(
     name: "Solar-Driven AC Setback",
     namespace: "jeabraham",
     author: "John Abraham",
-    description: "Adjust setpoint by Δ° when solar > E / < E2, from sunset−T until sunset, with manual-override stop, sunset-restore, C/F, invert-power, optional AUTO & AC-meter support.",
+    description: "Adjust setpoint by Δ° when solar > E / < E2, from sunset−T until sunset, with manual-override stop, sunset-restore, C/F, invert-power, optional AUTO & AC-meter support, and short-cycle protection.",
     category: "Green Energy",
     iconUrl:    "https://raw.githubusercontent.com/jeabraham/hubitat-ac-solar-setback/main/solar_setback_40x40.png",
     iconX2Url:  "https://raw.githubusercontent.com/jeabraham/hubitat-ac-solar-setback/main/solar_setback_80x80.png"
-
 )
 
 preferences {
@@ -38,7 +36,7 @@ This app monitors your solar production or net-grid power export starting T hour
 • If measured power > High threshold, it lowers your cooling setpoint by Δ°.
 • If measured power < Low threshold, or at actual sunset, it restores the setpoint (unless you've manually changed it).
 
-Options include Celsius/°F, inverting sign (for meters that report negative on export), applying in AUTO mode, and an optional AC power meter.
+Options include Celsius/°F, inverting sign (for meters that report negative on export), applying in AUTO mode, an optional AC power meter, and short-cycle protection.
 If an air conditioner (AC) power meter is provided, its consumption (W) is **added** to measured value—so the comparison is with what you’d export if the AC were off.
 Leave the AC meter blank if you’re monitoring raw solar production.
 """
@@ -51,7 +49,7 @@ Leave the AC meter blank if you’re monitoring raw solar production.
     }
     section("Optional devices") {
         input "acMeter", "capability.powerMeter",
-            title: "Air conditioner power meter (optional; W)", required: false
+            title: "Air Conditioning (AC) Power Meter (optional; W)", required: false
     }
     section("Thresholds & offsets") {
         input "offsetHours",   "decimal",
@@ -62,13 +60,7 @@ Leave the AC meter blank if you’re monitoring raw solar production.
             title: "Low threshold E2 (kW)",  defaultValue: 0.0, required: true
         input "tempChange",   "decimal",
             title: "Δ setpoint (°)",          defaultValue: 2.0, required: true
-
-        paragraph "**⚠️ If you’re monitoring net export _without_ an AC power meter, make sure:**\n" +
-              "`thresholdHigh - thresholdLow > your AC unit’s power consumption (kW)`\n" +
-              "Otherwise the app will cycle your AC too frequently and damage it.\n" +
-              "If your thermostat does not have a compressor protection delay feature, a day with mixed clouds\n" +
-              "could also damage your air conditioner."
-
+        paragraph "**⚠️ If monitoring net export without an AC meter, ensure:**\n`thresholdHigh - thresholdLow > your AC unit's consumption (kW)` to avoid rapid cycling."
     }
     section("Options") {
         input "useCelsius",  "bool",
@@ -79,8 +71,15 @@ Leave the AC meter blank if you’re monitoring raw solar production.
             title: "Apply setback in AUTO mode (unchecked → only in COOL)", defaultValue: false
         input "checkInterval","number",
             title: "Re-check every TD minutes until sunset", defaultValue: 15, required: true
+        input "shortCycleMinutes","number",
+            title: "Short-cycle protection delay (minutes)", defaultValue: 5, required: true
     }
 }
+
+// State variables:
+// state.lastActionTime = ms timestamp of last lower/restore
+// state.lowered = boolean
+// state.originalSetpoint, state.loweredSetpoint
 
 def installed() {
     validateSettings()
@@ -105,37 +104,37 @@ private void validateSettings() {
 
 private initialize() {
     log.debug "initialize(): resetting state & subscriptions"
-    state.lowered          = false
-    state.monitoring       = false
+    state.lowered = false
+    state.monitoring = false
+    state.lastActionTime = 0L
     state.originalSetpoint = null
-    state.loweredSetpoint  = null
-    state.sunsetTime       = null
+    state.loweredSetpoint = null
+    state.sunsetTime = null
 
-    subscribe(solarMeter,    "power",           onPowerEvent)
-    subscribe(thermostat,    "thermostatMode",  onThermostatMode)
-    subscribe(thermostat,    "coolingSetpoint", onSetpointChange)
-    subscribe(location,      "sunriseTime",     resetDaily)
+    subscribe(solarMeter, "power", onPowerEvent)
+    subscribe(thermostat, "thermostatMode", onThermostatMode)
+    subscribe(thermostat, "coolingSetpoint", onSetpointChange)
+    subscribe(location, "sunriseTime", resetDaily)
 
     scheduleDailyJobs()
 }
 
 private scheduleDailyJobs() {
-    def sun    = getSunriseAndSunset()
+    def sun = getSunriseAndSunset()
     def sunset = sun.sunset
     state.sunsetTime = sunset.time
     log.debug "Scheduling startMonitoring & stopMonitoring around sunset=${sunset}"
 
-    def startAt = new Date(sunset.time - (offsetHours.toDouble() * 3600 * 1000).toLong())
+    def startAt = new Date(sunset.time - (offsetHours.toDouble() *3600*1000).toLong())
     if (startAt.time <= now()) {
-        log.warn "Sunset−T is already past; starting monitoring immediately"
+        log.warn "Sunset−T is past; starting immediately"
         startMonitoring()
     } else {
         schedule(startAt, "startMonitoring")
-        log.debug "Scheduled startMonitoring() at ${startAt}"
+        log.debug "Scheduled startMonitoring at ${startAt}"
     }
-
     schedule(sunset, "stopMonitoring")
-    log.debug "Scheduled stopMonitoring() at ${sunset}"
+    log.debug "Scheduled stopMonitoring at ${sun.sunset}"
 }
 
 def startMonitoring() {
@@ -148,7 +147,6 @@ def stopMonitoring() {
     log.info  "■ stopMonitoring(): OFF at sunset (${new Date()})"
     state.monitoring = false
     unschedule("thresholdCheck")
-
     if (state.lowered) {
         def curr = thermostat.currentValue("coolingSetpoint").toString().toDouble()
         if (curr == state.loweredSetpoint) {
@@ -192,26 +190,34 @@ private handlePower(rawPower) {
     def measured = power + acPower
     log.trace "  → adjusted export (AC off) = ${measured} W"
 
-    def highW = thresholdHigh.toString().toDouble() * 1000
-    def lowW  = thresholdLow.toString().toDouble()  * 1000
+    def highW = thresholdHigh.toString().toDouble()*1000
+    def lowW  = thresholdLow.toString().toDouble()*1000
     log.trace "  → thresholds high=${highW} W, low=${lowW} W"
+    def nowMs = now()
 
     def mode = thermostat.currentThermostatMode
 
     if (!state.lowered && measured > highW) {
         if (mode == "cool" || (mode == "auto" && applyToAuto)) {
-            log.info  "handlePower(): measured ${measured} W > ${highW} W & mode=${mode} → lowering setpoint"
-            lowerSetpoint()
-        } else {
-            log.debug "handlePower(): measured > high but mode=${mode}, applyToAuto=${applyToAuto}"
+            attemptChange("lower", nowMs, highW, measured)
         }
     }
     else if (state.lowered && measured < lowW) {
         log.info  "handlePower(): measured ${measured} W < ${lowW} W → restoring setpoint"
-        restoreSetpoint()
+        attemptChange("restore", nowMs, lowW, measured)
     }
-    else {
-        log.debug "handlePower(): no action (lowered=${state.lowered}, measured=${measured} W)"
+}
+
+// Handle short-cycle protection
+private void attemptChange(action, nowMs, threshold, measured) {
+    def last = state.lastActionTime ?: 0L
+    def delayMs = shortCycleMinutes.toInteger()*60*1000L
+    if (nowMs - last < delayMs) {
+        log.warn "Short-cycle protection: delaying ${action} until after ${shortCycleMinutes} min"
+        runIn((delayMs - (nowMs-last))/1000 as Integer, "thresholdCheck")
+    } else {
+        if (action == "lower") lowerSetpoint() else restoreSetpoint()
+        state.lastActionTime = nowMs
     }
 }
 
@@ -223,6 +229,7 @@ def onThermostatMode(evt) {
     }
 }
 
+// Only stop monitoring on user-initiated changes
 def onSetpointChange(evt) {
     def v = evt.value.toString().toDouble()
     // ignore our own programmatic changes
@@ -237,31 +244,22 @@ def onSetpointChange(evt) {
 }
 
 private lowerSetpoint() {
-    def curr   = thermostat.currentValue("coolingSetpoint").toString().toDouble()
+    def curr = thermostat.currentValue("coolingSetpoint").toString().toDouble()
     state.originalSetpoint = curr
     def rawNew = curr - tempChange.toDouble()
-    def newSet = useCelsius
-        ? (Math.round(rawNew * 2) / 2.0)
-        : rawNew.round(1)
+    def newSet = useCelsius ? (Math.round(rawNew*2)/2.0) : rawNew.round(1)
     thermostat.setCoolingSetpoint(newSet)
-    state.loweredSetpoint  = newSet
-    state.lowered          = true
+    state.loweredSetpoint = newSet
+    state.lowered = true
     log.info  "⬇ lowerSetpoint(): ${curr}${unit()} → ${newSet}${unit()}"
 }
 
 private restoreSetpoint() {
-    try {
-        def curr = thermostat.currentValue("coolingSetpoint").toString().toDouble()
-        if (curr != state.loweredSetpoint) {
-            log.warn "restoreSetpoint(): manual override (${curr}${unit()}), skipping"
-        } else {
-            thermostat.setCoolingSetpoint(state.originalSetpoint)
-            log.info "⬆ restoreSetpoint(): back to ${state.originalSetpoint}${unit()}"
-            state.lowered = false
-        }
-    } catch (e) {
-        log.error "restoreSetpoint(): error ${e}"
-    }
+    def curr = thermostat.currentValue("coolingSetpoint").toString().toDouble()
+    if (curr != state.loweredSetpoint) { log.warn "Skip restore; manual override"; return }
+    thermostat.setCoolingSetpoint(state.originalSetpoint)
+    state.lowered = false
+    log.info "⬆ Setpoint restored to ${state.originalSetpoint}${unit()}"
 }
 
 def resetDaily(evt) {
@@ -271,6 +269,4 @@ def resetDaily(evt) {
     initialize()
 }
 
-private String unit() {
-    useCelsius ? "°C" : "°F"
-}
+private String unit() { useCelsius?"°C":"°F" }
