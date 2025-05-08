@@ -7,11 +7,11 @@
 This Hubitat application monitors your solar power export (or net grid usage) and dynamically adjusts your thermostat's cooling setpoint to maximize the use of excess solar generation. It:
 
 * Starts monitoring from **T hours before sunset** until actual sunset.
-* **Lowers** the cooling setpoint by Δ° when measured export (plus optional AC consumption) exceeds the **High threshold**.
+* **Lowers** the cooling setpoint by Δ° when measured export (plus optional Air Conditioning (AC) power consumption) exceeds the **High threshold**.
 * **Restores** the original setpoint when export drops below the **Low threshold** or at sunset (unless manually overridden).
 * **Stops monitoring** if you manually change the setpoint.
 * Supports **Celsius** (½° rounding) or **Fahrenheit** (1° rounding).
-* Offers **optional** features: inverting power sign, applying in **AUTO** mode, and including an **AC power meter** to adjust for air conditioner load.
+* Offers **optional** features: inverting power sign, applying in **AUTO** mode, an **Air Conditioning (AC) Power Meter**, and adjusting for air conditioner load.
 
 ## Prerequisites
 
@@ -36,7 +36,7 @@ This Hubitat application monitors your solar power export (or net grid usage) an
 
 ### Optional Device
 
-* **AC Power Meter**: If provided, its power usage is **added** to the measured export value, giving you the net export you would have if the AC were off. Use this only if your primary meter measures net usage.
+* **Air Conditioning (AC) Power Meter**: If provided, its power usage is **added** to the measured export value, giving you the net export you would have if your Air Conditioning (AC) unit were off. Use this only if your primary meter measures net usage.
 
 ### Thresholds & Timing
 
@@ -57,7 +57,7 @@ This Hubitat application monitors your solar power export (or net grid usage) an
 1. **Startup**: At install/update the app validates thresholds and schedules two jobs: one to start monitoring at `sunset − offsetHours` and another to stop at actual sunset.
 2. **Monitoring Loop**: Every `checkInterval` minutes (and on power events) it:
 
-   * Reads `rawPower` from the main meter (and optional AC load meter).
+   * Reads `rawPower` from the main meter (and optional Air Conditioning (AC) load meter).
    * Applies `invertPower` if needed.
    * Calculates `measuredExport = rawPower + AC_load`.
    * If `measuredExport > High threshold` & (mode = COOL or AUTO+`applyToAuto`), it lowers the setpoint by Δ and remembers the original.
@@ -69,12 +69,12 @@ This Hubitat application monitors your solar power export (or net grid usage) an
 ## Example Scenario
 
 * **Offset** = 5 h before sunset, **High** = 3.5 kW, **Low** = 0.1 kW, **Δ** = 2°.
-* **AC Load** = 2.5 kW.
+* **Air Conditioning (AC) load** = 2.5 kW.
 
 1. At sunset−5 h, export = 0.8 kW → below High, keep checking.
 2. Cloud passes, export jumps to 1.2 kW; with AC load added, `measuredExport = 1.2 + 2.5 = 3.7 kW` → >3.5 kW → lower setpoint by 2°.
 3. Cloud returns, export drops to 0.05 kW; `measuredExport = 0.05 + 2.5 = 2.55 kW` → still >Low threshold (0.1 kW) but \<High → no restore until below 0.1 kW.
-4. Later, export falls to 0.05 kW and AC is off; `measuredExport = 0.05 + 0 = 0.05 kW` → <0.1 kW → restore original setpoint.
+4. Later, export falls again to 0.05 kW but AC is off; `measuredExport = 0.05 + 0 = 0.05 kW` → <0.1 kW → restore original setpoint.
 5. Sunset arrives: if still lowered, setpoint resets automatically.
 
 ## Troubleshooting

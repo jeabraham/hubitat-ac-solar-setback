@@ -34,7 +34,7 @@ This app monitors your solar production or net-grid power export starting T hour
 • If measured power < Low threshold, or at actual sunset, it restores the setpoint (unless you've manually changed it).
 
 Options include Celsius/°F, inverting sign (for meters that report negative on export), applying in AUTO mode, and an optional AC power meter.
-If an AC meter is provided, its consumption (W) is **added** to measured value—so the comparison is with what you’d export if the AC were off.
+If an air conditioner (AC) power meter is provided, its consumption (W) is **added** to measured value—so the comparison is with what you’d export if the AC were off.
 Leave the AC meter blank if you’re monitoring raw solar production.
 """
     }
