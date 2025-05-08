@@ -111,9 +111,7 @@ private initialize() {
     state.loweredSetpoint = null
     state.sunsetTime = null
 
-    subscribe(solarMeter, "power", onPowerEvent)
     subscribe(thermostat, "thermostatMode", onThermostatMode)
-    subscribe(thermostat, "coolingSetpoint", onSetpointChange)
     subscribe(location, "sunriseTime", resetDaily)
 
     scheduleDailyJobs()
@@ -140,6 +138,11 @@ private scheduleDailyJobs() {
 def startMonitoring() {
     state.monitoring = true
     log.info  "▶︎ startMonitoring(): ON until sunset (${new Date(state.sunsetTime)})"
+
+    // re-subscribe to power and setpoint change events at the start of monitoring
+    subscribe(solarMeter, "power", onPowerEvent)
+    subscribe(thermostat, "coolingSetpoint", onSetpointChange)
+
     thresholdCheck()  // initial check & loop
 }
 
