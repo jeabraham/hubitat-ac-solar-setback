@@ -212,9 +212,12 @@ private handlePower(rawPower) {
 private void attemptChange(action, nowMs, threshold, measured) {
     def last = state.lastActionTime ?: 0L
     def delayMs = shortCycleMinutes.toInteger()*60*1000L
-    if (nowMs - last < delayMs) {
-        log.warn "Short-cycle protection: delaying ${action} until after ${shortCycleMinutes} min"
-        runIn((delayMs - (nowMs-last))/1000 as Integer, "thresholdCheck")
+    def elapsed = nowMs - last
+    if (elapsed < delayMs) {
+        def remainingMs = delayMs - elapsed
+        def delaySec = Math.ceil(remainingMs / 1000.0) as Integer
+        log.warn "Short-cycle protection: scheduling ${action} retry in ${delaySec} seconds"
+        runIn(delaySec, "thresholdCheck")
     } else {
         if (action == "lower") lowerSetpoint() else restoreSetpoint()
         state.lastActionTime = nowMs

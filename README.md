@@ -12,7 +12,7 @@ cooling setpoint to prioritize cooling your house with solar power. It:
 * **Restores** the original setpoint when production, or export + AC power, drops below the **Low threshold** or at sunset (unless manually overridden).
 * **Stops monitoring** if you manually change the setpoint.
 * Supports **Celsius** (½° rounding) or **Fahrenheit** (1° rounding).
-* Offers **optional** features: inverting power sign, applying in **AUTO** mode, and adjusting for air conditioner load.
+* Offers **optional** features: inverting power sign, applying in **AUTO** mode, include an **Air Conditioning (AC) Power Meter**, and **short-cycle protection** to avoid rapid setpoint changes.
 
 ## Prerequisites
 
@@ -55,19 +55,28 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
 
 * **Air Conditioning (AC) Power Meter**: If provided, its power usage is **added** to the measured export power, giving you the net export you would have if your Air Conditioning (AC) unit were off. Use this only if you're measuring net usage (not solar production).
 
-### Thresholds & Timing
+## Thresholds & Timing
 
 * **T hours before sunset** (`offsetHours`): When to begin monitoring (e.g., `5.0`).
 * **High threshold** (`thresholdHigh`): kW production/export above which the setpoint is lowered (e.g., `3.5`).
 * **Low threshold** (`thresholdLow`): kW production/export below which the setpoint restores (e.g., `0.1`). Must be ≥0.5 kW below the High threshold. If you are measuring net export and don't have an AC power meter make sure the difference is greater than your AC power consumption, otherwise this app could cycle your AC and damage it. See Troubleshooting tips below.
 * **Δ setpoint** (`tempChange`): Degrees to lower the setpoint (°C or °F).
 
-### Options
+> **⚠️ Caution:** If you’re measuring **net power export** (not direct solar export) and have *not* provided an Air Conditioning (AC) power meter, ensure:
+>
+> ```
+> thresholdHigh - thresholdLow > your AC unit’s power consumption (kW)
+> ```
+>
+> Otherwise the app could cycle your AC on/off too frequently and risk damage.
+
+## Options
 
 * **Use Celsius** (`useCelsius`): Rounds setpoint to 0.5°C steps (uncheck for °F with 1° steps).
 * **Invert power** (`invertPower`): Most net-power meters report negative values on export, enable this to invert the reading so export is positive.
 * **Apply in AUTO** (`applyToAuto`): If checked, the setback also applies when the thermostat is in AUTO mode. Otherwise, only in COOL mode.
 * **Re-check Interval** (`checkInterval`): How often (in minutes) to re-evaluate export if threshold not reached (default `15`).
+* **Short-cycle protection** (`shortCycleMinutes`): Minimum delay (in minutes) between successive setpoint changes to prevent rapid AC cycling (default `5`).
 
 ## How It Works
 
@@ -79,6 +88,7 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
    * Calculates `measuredExport = rawPower + AC_load`.
    * If `measuredExport > High threshold` & (mode = COOL or AUTO+`applyToAuto`), it lowers the setpoint by Δ and remembers the original.
    * If already lowered and `measuredExport < Low threshold`, it restores the original setpoint.
+   * **Short-cycle protection**: before any setpoint change, the app enforces a minimum wait of `shortCycleMinutes` before repeating any lower/restore action.
 3. **Manual Override**: Any physical user change to the setpoint stops further monitoring until the next day.
 4. **Sunset Reset**: At sunset, if still lowered (and not manually overridden), the original setpoint is restored.
 5. **Sunrise Reset**: Each sunrise clears all state so the cycle can run again the next afternoon.
@@ -104,7 +114,7 @@ After installing by either method, proceed to **Apps → Add User App → Solar-
 
 ## License, Limit of Liability & Credits
 
-Developed by **John Abraham**, leveraging assistance
-from **ChatGPT**. Feel free to modify and share under the terms of the **MIT License**.
-Note the MIT license limits liability, this app could damage your air conditioner
-by cycling it too often.  Be extra cautious if your thermostat does not have a compressor protection delay feature, a.k.a. short‐cycle protection.
+Developed by **John Abraham**, leveraging assistance from **ChatGPT**. Feel free to modify and share under the terms of the **MIT License**.
+Note the MIT license limits liability, even with the short cycling feature, this app could damage your air conditioner
+by cycling it too often, ensure your thresholds are far enough apart to account for your
+air conditioners power (if you aren't monitoring it) and for clouds coming and going.  
