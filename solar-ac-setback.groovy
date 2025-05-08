@@ -146,7 +146,11 @@ def startMonitoring() {
 def stopMonitoring() {
     log.info  "■ stopMonitoring(): OFF at sunset (${new Date()})"
     state.monitoring = false
+    
+    unsubscribe(solarMeter, "power", onPowerEvent)
+    unsubscribe(thermostat, "coolingSetpoint", onSetpointChange)
     unschedule("thresholdCheck")
+    
     if (state.lowered) {
         def curr = thermostat.currentValue("coolingSetpoint").toString().toDouble()
         if (curr == state.loweredSetpoint) {
