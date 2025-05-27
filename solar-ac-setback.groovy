@@ -103,13 +103,11 @@ private void validateSettings() {
 }
 
 private initialize() {
-    log.debug "initialize(): resetting state & subscriptions"
-    state.lowered = false
-    state.monitoring = false
-    state.lastActionTime = 0L
-    state.originalSetpoint = null
-    state.loweredSetpoint = null
-    state.sunsetTime = null
+    log.debug "initialize(): resetting subscriptions"
+
+    state.lowered        = state.lowered        ?: false
+    state.monitoring     = state.monitoring     ?: false
+    state.lastActionTime = state.lastActionTime ?: 0L
 
     subscribe(thermostat, "thermostatMode", onThermostatMode)
     subscribe(location, "sunriseTime", resetDaily)
@@ -118,22 +116,46 @@ private initialize() {
 }
 
 private scheduleDailyJobs() {
-    def sun = getSunriseAndSunset()
-    def sunset = sun.sunset
+    // checking if the new Date() syntax works.
+    def sun     = getSunriseAndSunset()
+    if (now() > sun.sunset.time) {
+        // after today’s sunset → fetch tomorrow’s times
+        sun = getSunriseAndSunset([date: new Date() + 1])
+    }
+    def sunrise = sun.sunrise
+    def sunset  = sun.sunset
     state.sunsetTime = sunset.time
     log.debug "Scheduling startMonitoring & stopMonitoring around sunset=${sunset}"
 
-    def startAt = new Date(sunset.time - (offsetHours.toDouble() *3600*1000).toLong())
+    // Validate offsetHours
+    if (offsetHours.toDouble() < 0.5) {
+        log.error "offsetHours (${offsetHours}) must be at least 0.5 hours"
+        offsetHours = 0.5
+    }
+
+    // Compute desired start time
+    def startAt = new Date(sunset.time - (offsetHours.toDouble() * 3600 * 1000).toLong())
+    // Ensure monitoring doesn’t start too early
+    def minStart = new Date(sunrise.time + 3600 * 1000)
+    if (startAt.time < minStart.time) {
+        log.error "Requested startMonitoring (${startAt}) occurs before sunrise+1h (${minStart})"
+        startAt = minStart
+    }
+
+    // Schedule start
     if (startAt.time <= now()) {
-        log.warn "Sunset−T is past; starting immediately"
+        log.warn "Sunset−T start time is past; starting monitoring immediately"
         startMonitoring()
     } else {
         schedule(startAt, "startMonitoring")
         log.debug "Scheduled startMonitoring at ${startAt}"
     }
+
+    // Schedule stop at actual sunset
     schedule(sunset, "stopMonitoring")
-    log.debug "Scheduled stopMonitoring at ${sun.sunset}"
+    log.debug "Scheduled stopMonitoring at ${sunset}"
 }
+
 
 def startMonitoring() {
     state.monitoring = true
@@ -282,6 +304,12 @@ def resetDaily(evt) {
     log.debug "resetDaily(): sunrise—reset state for new day"
     unsubscribe()
     unschedule()
+    state.lowered          = false
+    state.monitoring       = false
+    state.lastActionTime   = 0L
+    state.originalSetpoint = null
+    state.loweredSetpoint  = null
+    state.sunsetTime       = null
     initialize()
 }
 
